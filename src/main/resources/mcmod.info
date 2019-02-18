@@ -1,0 +1,9 @@
+[{
+  "modid": "chattranslator",
+  "name": "ChatTranslator",
+  "description": "Translates foreign languages in chat to English.",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "url": "https://biscuit.codes",
+  "authorList": ["Biscut"]
+}]
