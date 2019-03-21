@@ -1,14 +1,13 @@
 package codes.biscuit.chattranslator.events;
 
 import codes.biscuit.chattranslator.ChatTranslator;
+import codes.biscuit.chattranslator.utils.ConfigUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.network.NetworkPlayerInfo;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.regex.Pattern;
 
 public class ChatRewriter {
@@ -21,9 +20,12 @@ public class ChatRewriter {
 
     @SubscribeEvent(priority = EventPriority.LOW)
     public void onChatReceive(ClientChatReceivedEvent e) {
-        if (!e.isCanceled() && e.type == 0 && e.message.getUnformattedText().length() > 2 && !e.message.getUnformattedText().substring(2).startsWith("\u2708 ")) { // If the message doesn't have an airplane at the start (not processed yet)
+        if (!(e.type == 0) && main.getConfigUtils().translateMode != ConfigUtils.TranslateMode.ALLMESSAGES) {
+            return;
+        }
+        if (e.message.getUnformattedText().length() > 2 && !e.message.getUnformattedText().substring(2).startsWith(main.getConfigUtils().symbol+" ")) { // If the message doesn't have an airplane at the start (not processed yet)
             boolean foundCharacter = true;
-            if (!main.getConfigUtils().translateAllMessages) { // Check for foreign characters if translateAllMessages is false
+            if (main.getConfigUtils().translateMode == ConfigUtils.TranslateMode.REGULAR) { // Check for foreign characters
                 foundCharacter = false;
                 String newMessage = e.message.getUnformattedText();
                 if (main.getUtils().isOnHypixel()) {
@@ -46,14 +48,20 @@ public class ChatRewriter {
                 }
             }
             if (foundCharacter) { // If a foreign character is found / translateAllMessages is true
-                List<NetworkPlayerInfo> playerInfo = new ArrayList<>(Minecraft.getMinecraft().getNetHandler().getPlayerInfoMap());
-                for (NetworkPlayerInfo player : playerInfo) { // Make sure this message is from a player by checking if the message contains someone's name in the current lobby (some are fake labeled as player messages)
-                    if (player.getGameProfile().getName() != null && e.message.getUnformattedText().contains(player.getGameProfile().getName())) {
-                        if (!main.getConfigUtils().translateSelf && player.getGameProfile().getName().equals(Minecraft.getMinecraft().thePlayer.getName())) return;
-                        e.setCanceled(true); // Cancel and process the message
-                        main.getUtils().translate(e.message);
-                        return;
+                if (main.getConfigUtils().translateMode != ConfigUtils.TranslateMode.ALLMESSAGES) {
+                    for (NetworkPlayerInfo player : Minecraft.getMinecraft().getNetHandler().getPlayerInfoMap()) { // Make sure this message is from a player by checking if the message contains someone's name in the current lobby (some are fake labeled as player messages)
+                        if (player.getGameProfile().getName() != null && e.message.getUnformattedText().contains(player.getGameProfile().getName())) {
+                            if (!main.getConfigUtils().translateSelf && player.getGameProfile().getName().equals(Minecraft.getMinecraft().thePlayer.getName())) {
+                                continue;
+                            }
+                            e.setCanceled(true); // Cancel and process the message
+                            main.getUtils().translate(e.message);
+                            return;
+                        }
                     }
+                } else {
+                    e.setCanceled(true); // Cancel and process the message
+                    main.getUtils().translate(e.message);
                 }
             }
         }

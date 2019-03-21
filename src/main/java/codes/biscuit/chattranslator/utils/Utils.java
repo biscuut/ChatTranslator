@@ -4,6 +4,7 @@ import codes.biscuit.chattranslator.ChatTranslator;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import net.minecraft.client.Minecraft;
+import net.minecraft.event.ClickEvent;
 import net.minecraft.event.HoverEvent;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.EnumChatFormatting;
@@ -73,7 +74,8 @@ public class Utils {
                 } catch (Exception ex) {
                     ex.printStackTrace();
                     IChatComponent message = originalMessage.setChatStyle(originalMessage.getChatStyle().setChatHoverEvent( // Add the translation as hover text and send the message
-                            new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ChatComponentText(EnumChatFormatting.RED + "Something went wrong with the translation. You may have run out of quota or misspelled your key."))));
+                            new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ChatComponentText(EnumChatFormatting.RED + "Something went wrong- you may have run out of quota or misspelled your key. Click to view/make a new key."))));
+                    message.setChatStyle(message.getChatStyle().setChatClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://translate.yandex.com/developers/keys")));
                     postMessage(message, 1);
                 } finally {
                     if (conn != null) {
@@ -86,11 +88,11 @@ public class Utils {
 
     private void postMessage(IChatComponent message, int messageType) {
         if (messageType == 0) { // Translation success
-            message = new ChatComponentText(EnumChatFormatting.GREEN + "\u2708 ").appendSibling(message);
+            message = new ChatComponentText(EnumChatFormatting.GREEN.toString() + main.getConfigUtils().symbol+" ").appendSibling(message);
         } else if (messageType == 1) { // Translation failure
-            message = new ChatComponentText(EnumChatFormatting.RED + "\u2708 ").appendSibling(message);
+            message = new ChatComponentText(EnumChatFormatting.RED.toString() + main.getConfigUtils().symbol+" ").appendSibling(message);
         } else { // Translation
-            message = new ChatComponentText(EnumChatFormatting.GRAY + "\u2708 ").appendSibling(message);
+            message = new ChatComponentText(EnumChatFormatting.GRAY.toString() + main.getConfigUtils().symbol+" ").appendSibling(message);
         }
         ClientChatReceivedEvent chatEvent = new ClientChatReceivedEvent((byte)0, message);
         Minecraft.getMinecraft().thePlayer.addChatMessage(chatEvent.message); // Just for logs

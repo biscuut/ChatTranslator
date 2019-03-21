@@ -13,8 +13,9 @@ public class ConfigUtils {
 
     public String lang = "en";
     String key = "";
+    public char symbol = '\u2708';
     public boolean translateSelf = true;
-    public boolean translateAllMessages = false;
+    public TranslateMode translateMode = TranslateMode.REGULAR;
     public EnumChatFormatting translationColour = EnumChatFormatting.YELLOW;
 
     public ConfigUtils(File configFile) {
@@ -34,9 +35,10 @@ public class ConfigUtils {
                 String complete = builder.toString();
                 loadedConfig = new JsonParser().parse(complete).getAsJsonObject();
                 key = loadedConfig.get("key").getAsString();
+                symbol = loadedConfig.get("symbol").getAsCharacter();
                 lang = loadedConfig.get("lang").getAsString();
                 translateSelf = loadedConfig.get("translate-self").getAsBoolean();
-                translateAllMessages = loadedConfig.get("translate-all").getAsBoolean();
+                translateMode = TranslateMode.fromID(loadedConfig.get("mode").getAsByte());
                 translationColour = EnumChatFormatting.valueOf(loadedConfig.get("translation-colour").getAsString());
             } catch (Exception ex) {
                 saveConfig();
@@ -56,8 +58,9 @@ public class ConfigUtils {
             BufferedWriter bufferedWriter = new BufferedWriter(writer);
             loadedConfig.addProperty("lang", lang);
             loadedConfig.addProperty("key", key);
+            loadedConfig.addProperty("symbol", symbol);
             loadedConfig.addProperty("translate-self", translateSelf);
-            loadedConfig.addProperty("translate-all", translateAllMessages);
+            loadedConfig.addProperty("mode", translateMode.getId());
             loadedConfig.addProperty("translation-colour", translationColour.toString());
             bufferedWriter.write(loadedConfig.toString());
             bufferedWriter.close();
@@ -70,5 +73,30 @@ public class ConfigUtils {
 
     public void setKey(String key) {
         this.key = key;
+    }
+
+    public enum TranslateMode {
+        REGULAR(0),
+        ALLPLAYER(1),
+        ALLMESSAGES(2);
+
+        private byte id;
+
+        TranslateMode(int id) {
+            this.id = (byte)id;
+        }
+
+        public int getId() {
+            return id;
+        }
+
+        public static TranslateMode fromID(int id) {
+            for (TranslateMode mode : values()) {
+                if (mode.id == (byte)id) {
+                    return mode;
+                }
+            }
+            return null;
+        }
     }
 }

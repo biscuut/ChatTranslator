@@ -15,7 +15,7 @@ public class ChatTranslator {
 
     static final String MOD_ID = "chattranslator";
     static final String MOD_NAME = "ChatTranslator";
-    static final String VERSION = "1.0.3";
+    static final String VERSION = "1.0.4";
 
     private ConfigUtils configUtils;
     private Utils utils = new Utils(this);

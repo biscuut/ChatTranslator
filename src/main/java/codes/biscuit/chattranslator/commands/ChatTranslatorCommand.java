@@ -1,6 +1,7 @@
 package codes.biscuit.chattranslator.commands;
 
 import codes.biscuit.chattranslator.ChatTranslator;
+import codes.biscuit.chattranslator.utils.ConfigUtils;
 import codes.biscuit.chattranslator.utils.YandexLanguage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.command.CommandBase;
@@ -10,10 +11,7 @@ import net.minecraft.util.*;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.common.MinecraftForge;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 public class ChatTranslatorCommand extends CommandBase {
 
@@ -49,11 +47,11 @@ public class ChatTranslatorCommand extends CommandBase {
     public List<String> addTabCompletionOptions(ICommandSender sender, String[] args, BlockPos pos)
     {
         if (args.length == 1) {
-            List<String> options = Arrays.asList("self", "translateall", "key", "language", "colour", "color");
-            List<String> arguments = new ArrayList<>(options);
-            for (String arg : options) {
-                if (!arg.startsWith(args[0].toLowerCase())) {
-                    arguments.remove(arg);
+            List<String> arguments = new ArrayList<>(Arrays.asList("self", "mode", "key", "language", "colour", "symbol"));
+            Iterator<String> argumentIterator = arguments.listIterator();
+            while (argumentIterator.hasNext()) {
+                if (!argumentIterator.next().startsWith(args[0].toLowerCase())) {
+                    argumentIterator.remove();
                 }
             }
             return arguments;
@@ -83,14 +81,32 @@ public class ChatTranslatorCommand extends CommandBase {
                     main.getConfigUtils().translateSelf = !main.getConfigUtils().translateSelf;
                     main.getConfigUtils().saveConfig();
                     return;
-                case "translateall":
-                    if (main.getConfigUtils().translateAllMessages) {
-                        sendMessage(new ChatComponentText(EnumChatFormatting.RED + "You will no longer translate all player messages."));
+                case "mode":
+                    if (args.length > 1) {
+                        ConfigUtils.TranslateMode translateMode;
+                        try {
+                            translateMode = ConfigUtils.TranslateMode.valueOf(args[1].toUpperCase());
+                        } catch (IllegalArgumentException ex) {
+                            sendMessage(new ChatComponentText(EnumChatFormatting.RED + "This is not a valid mode! [regular|allplayer|allmessages]"));
+                            return;
+                        }
+                        switch (translateMode) {
+                            case REGULAR:
+                                sendMessage(new ChatComponentText(EnumChatFormatting.GREEN + "You will now translate player messages with a detected symbol only."));
+                                break;
+                            case ALLPLAYER:
+                                sendMessage(new ChatComponentText(EnumChatFormatting.GREEN + "You will now translate all messages that are sent by a player"));
+                                break;
+                            case ALLMESSAGES:
+                                sendMessage(new ChatComponentText(EnumChatFormatting.GREEN + "You will now translate all messages (except private)."));
+                                break;
+                        }
+                        main.getConfigUtils().translateMode = translateMode;
+                        main.getConfigUtils().saveConfig();
+
                     } else {
-                        sendMessage(new ChatComponentText(EnumChatFormatting.GREEN + "You will now translate all player messages (may waste more character quota!)."));
+                        sendMessage(new ChatComponentText(EnumChatFormatting.RED + "Please specify a mode: /ctr mode [regular|allplayer|allmessages]"));
                     }
-                    main.getConfigUtils().translateAllMessages = !main.getConfigUtils().translateAllMessages;
-                    main.getConfigUtils().saveConfig();
                     return;
                 case "language":
                     if (args.length > 1) {
@@ -118,16 +134,30 @@ public class ChatTranslatorCommand extends CommandBase {
                         sendMessage(new ChatComponentText(EnumChatFormatting.RED + "Please specify a colour: /ctr colour <colour>"));
                     }
                     return;
+                case "symbol":
+                    if (args.length > 1) {
+                        if (args[1].length() == 1) {
+                            main.getConfigUtils().symbol = args[1].charAt(0);
+                            sendMessage(new ChatComponentText(EnumChatFormatting.GREEN + "Your symbol has been set to: " + args[1].charAt(0) + "."));
+                            main.getConfigUtils().saveConfig();
+                        } else {
+                            sendMessage(new ChatComponentText(EnumChatFormatting.RED + "The symbol must be a single character!"));
+                        }
+                    } else {
+                        sendMessage(new ChatComponentText(EnumChatFormatting.RED + "Please specify a symbol: /ctr symbol <symbol>"));
+                    }
+                    return;
             }
         }
        sendMessage(new ChatComponentText(EnumChatFormatting.GRAY.toString() + EnumChatFormatting.STRIKETHROUGH + "--------------" + EnumChatFormatting.GRAY + "[" + EnumChatFormatting.RED + EnumChatFormatting.BOLD + " ChatTranslator " + EnumChatFormatting.GRAY + "]" + EnumChatFormatting.GRAY + EnumChatFormatting.STRIKETHROUGH + "--------------"));
        sendMessage(new ChatComponentText(EnumChatFormatting.RED + "\u25CF /ctr self " + EnumChatFormatting.GRAY + "- Toggle whether to translate your own chat."));
-       sendMessage(new ChatComponentText(EnumChatFormatting.RED + "\u25CF /ctr translateall " + EnumChatFormatting.GRAY + "- Toggle whether to translate ALL player chat (may waste precious quota)."));
+       sendMessage(new ChatComponentText(EnumChatFormatting.RED + "\u25CF /ctr mode [regular|allplayer|allmessages] " + EnumChatFormatting.GRAY + "- Toggle the translate mode- other ones may waste precious character quota."));
 //       sendMessage(new ChatComponentText(EnumChatFormatting.RED + "\u25CF /ctr [livetranslate|lt] <off|language> " + EnumChatFormatting.GRAY + "- Translate all outgoing chat into another language!"));
        sendMessage(new ChatComponentText(EnumChatFormatting.RED + "\u25CF /ctr key <key> " + EnumChatFormatting.GRAY + "- Enter your Yandex api key."));
        sendMessage(new ChatComponentText(EnumChatFormatting.RED + "\u25CF /ctr language <language> " + EnumChatFormatting.GRAY + "- Set the translation result language."));
         sendMessage(new ChatComponentText(EnumChatFormatting.RED + "\u25CF /ctr colour <colour> " + EnumChatFormatting.GRAY + "- Set the colour of the translation result."));
-       sendMessage(new ChatComponentText(EnumChatFormatting.GRAY.toString() + EnumChatFormatting.ITALIC + "v1.0.2" + " by Biscut - ")
+        sendMessage(new ChatComponentText(EnumChatFormatting.RED + "\u25CF /ctr symbol <symbol> " + EnumChatFormatting.GRAY + "- Change the prefix symbol from an airplane to something else."));
+       sendMessage(new ChatComponentText(EnumChatFormatting.GRAY.toString() + EnumChatFormatting.ITALIC + "v1.0.4" + " by Biscut - ")
                .appendSibling(new ChatComponentText(EnumChatFormatting.GRAY.toString() + EnumChatFormatting.ITALIC + "Powered by Yandex Translate").setChatStyle(new ChatStyle().setChatClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "http://translate.yandex.com/")))));
        sendMessage(new ChatComponentText(EnumChatFormatting.GRAY.toString() + EnumChatFormatting.STRIKETHROUGH + "----------------------------------------------"));
     }
