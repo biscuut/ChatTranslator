@@ -40,8 +40,8 @@ public class Utils {
                 HttpsURLConnection conn = null;
                 try {
                     URL url = new URL(("https://translate.yandex.net/api/v1.5/tr.json/translate" +
-                            "?key=" + URLEncoder.encode(main.getConfigUtils().key, "UTF-8")
-                            + "&lang=" + URLEncoder.encode(main.getConfigUtils().lang, "UTF-8")
+                            "?key=" + URLEncoder.encode(main.getConfigUtils().getKey(), "UTF-8")
+                            + "&lang=" + URLEncoder.encode(main.getConfigUtils().getLang(), "UTF-8")
                             + "&text=" + URLEncoder.encode(finalMessage, "UTF-8")));
                     conn = (HttpsURLConnection)url.openConnection();
                     conn.setRequestProperty("Content-Type", "text/plain; charset=" + "UTF-8");
@@ -64,19 +64,21 @@ public class Utils {
                     String languageCode = new Gson().fromJson(result, JsonObject.class).get("lang").toString().split(Pattern.quote("-"))[0].substring(1);
                     YandexLanguage detectedLanguage = YandexLanguage.fromLanguageCode(languageCode);
                     properResult = properResult.trim().substring(0, properResult.length() - 2).substring(2);
-                    if (detectedLanguage == YandexLanguage.fromLanguageCode(main.getConfigUtils().lang)) {
-                        postMessage(originalMessage, 2);
+                    if (detectedLanguage == YandexLanguage.fromLanguageCode(main.getConfigUtils().getLang())) {
+                        IChatComponent message = originalMessage.setChatStyle(originalMessage.getChatStyle().setChatClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/ctr copyclipboard "+finalMessage)));
+                        addPrefixAndSend(message, 2);
                     } else {
                         IChatComponent message = originalMessage.setChatStyle(originalMessage.getChatStyle().setChatHoverEvent( // Add the translation as hover text and send the message
-                                new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ChatComponentText(main.getConfigUtils().translationColour + "(" + detectedLanguage + ") " + properResult))));
-                        postMessage(message, 0);
+                                new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ChatComponentText(main.getConfigUtils().getTranslationColour() + "(" + detectedLanguage + ") " + properResult))));
+                        message.setChatStyle(message.getChatStyle().setChatClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/ctr copyclipboard "+finalMessage)));
+                        addPrefixAndSend(message, 0);
                     }
                 } catch (Exception ex) {
                     ex.printStackTrace();
                     IChatComponent message = originalMessage.setChatStyle(originalMessage.getChatStyle().setChatHoverEvent( // Add the translation as hover text and send the message
                             new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ChatComponentText(EnumChatFormatting.RED + "Something went wrong- you may have run out of quota or misspelled your key. Click to view/make a new key."))));
                     message.setChatStyle(message.getChatStyle().setChatClickEvent(new ClickEvent(ClickEvent.Action.OPEN_URL, "https://translate.yandex.com/developers/keys")));
-                    postMessage(message, 1);
+                    addPrefixAndSend(message, 1);
                 } finally {
                     if (conn != null) {
                         conn.disconnect();
@@ -86,17 +88,23 @@ public class Utils {
         }).start();
     }
 
-    private void postMessage(IChatComponent message, int messageType) {
-        if (messageType == 0) { // Translation success
-            message = new ChatComponentText(EnumChatFormatting.GREEN.toString() + main.getConfigUtils().symbol+" ").appendSibling(message);
-        } else if (messageType == 1) { // Translation failure
-            message = new ChatComponentText(EnumChatFormatting.RED.toString() + main.getConfigUtils().symbol+" ").appendSibling(message);
+    private void addPrefixAndSend(IChatComponent message, int prefixType) {
+        if (prefixType == 0) { // Translation success
+            message = new ChatComponentText(EnumChatFormatting.GREEN.toString() + main.getConfigUtils().getSymbol() +" ").appendSibling(message);
+        } else if (prefixType == 1) { // Translation failure
+            message = new ChatComponentText(EnumChatFormatting.RED.toString() + main.getConfigUtils().getSymbol() +" ").appendSibling(message);
         } else { // Translation
-            message = new ChatComponentText(EnumChatFormatting.GRAY.toString() + main.getConfigUtils().symbol+" ").appendSibling(message);
+            message = new ChatComponentText(EnumChatFormatting.GRAY.toString() + main.getConfigUtils().getSymbol() +" ").appendSibling(message);
         }
-        ClientChatReceivedEvent chatEvent = new ClientChatReceivedEvent((byte)0, message);
-        Minecraft.getMinecraft().thePlayer.addChatMessage(chatEvent.message); // Just for logs
-        MinecraftForge.EVENT_BUS.post(new ClientChatReceivedEvent((byte)0, chatEvent.message)); // Let other mods pick up the new message
+        sendMessage(message);
+    }
+
+    public static void sendMessage(IChatComponent sendMessage) {
+        ClientChatReceivedEvent event = new ClientChatReceivedEvent((byte)1, sendMessage);
+        MinecraftForge.EVENT_BUS.post(event); // Let other mods pick up the new message
+        if (!event.isCanceled()) {
+            Minecraft.getMinecraft().thePlayer.addChatMessage(event.message); // Just for logs
+        }
     }
 
     public boolean isOnHypixel() {

@@ -1,7 +1,7 @@
 package codes.biscuit.chattranslator;
 
 import codes.biscuit.chattranslator.commands.ChatTranslatorCommand;
-import codes.biscuit.chattranslator.events.ChatRewriter;
+import codes.biscuit.chattranslator.listeners.ChatListener;
 import codes.biscuit.chattranslator.utils.ConfigUtils;
 import codes.biscuit.chattranslator.utils.Utils;
 import net.minecraftforge.client.ClientCommandHandler;
@@ -15,7 +15,7 @@ public class ChatTranslator {
 
     static final String MOD_ID = "chattranslator";
     static final String MOD_NAME = "ChatTranslator";
-    static final String VERSION = "1.0.4";
+    static final String VERSION = "1.0.7";
 
     private ConfigUtils configUtils;
     private Utils utils = new Utils(this);
@@ -27,7 +27,7 @@ public class ChatTranslator {
 
     @Mod.EventHandler
     public void init(FMLInitializationEvent e) {
-        MinecraftForge.EVENT_BUS.register(new ChatRewriter(this));
+        MinecraftForge.EVENT_BUS.register(new ChatListener(this));
         ClientCommandHandler.instance.registerCommand(new ChatTranslatorCommand(this));
         configUtils.loadConfig();
     }
